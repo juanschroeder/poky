@@ -1,12 +1,13 @@
 DEPENDS:append = " python3-pip-native"
 
 def guess_pip_install_package_name(d):
+    import re
     '''https://www.python.org/dev/peps/pep-0491/#escaping-and-unicode'''
-    return (d.getVar('PYPI_PACKAGE') or d.getVar('BPN')).replace('-', '_')
+    return (d.getVar('PYPI_PACKAGE') or re.sub(r"^python3-", "", d.getVar('BPN')).replace('-', '_'))
 
 PIP_INSTALL_PACKAGE ?= "${@guess_pip_install_package_name(d)}"
-PIP_INSTALL_DIST_PATH ?= "${B}/dist"
-PYPA_WHEEL ??= "${PIP_INSTALL_DIST_PATH}/${PIP_INSTALL_PACKAGE}-${PV}-*.whl"
+PIP_INSTALL_DIST_PATH ?= "${@d.getVar('SETUPTOOLS_SETUP_PATH') or d.getVar('B')}/dist"
+PYPA_WHEEL ??= "${PIP_INSTALL_DIST_PATH}/${PIP_INSTALL_PACKAGE}-*-*.whl"
 
 PIP_INSTALL_ARGS ?= "\
     -vvvv \
@@ -43,6 +44,11 @@ pip_install_wheel_do_install () {
             cd -
         fi
     done
+}
+
+do_compile:prepend() {
+    # cleanup previously generated files
+    rm -f ${PYPA_WHEEL}
 }
 
 EXPORT_FUNCTIONS do_install
